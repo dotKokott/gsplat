@@ -2,9 +2,33 @@
 
 # Took from https://github.com/pyg-team/pyg-lib/
 
-OS=ubuntu2004
+OS=ubuntu2404
 
 case ${1} in
+  cu130)
+    CUDA=13.0
+    APT_KEY=${OS}-${CUDA/./-}-local
+    FILENAME=cuda-repo-${APT_KEY}_${CUDA}.0-580.65.06-1_amd64.deb
+    URL=https://developer.download.nvidia.com/compute/cuda/${CUDA}.1/local_installers
+    ;;
+  cu129)
+    CUDA=12.9
+    APT_KEY=${OS}-${CUDA/./-}-local
+    FILENAME=cuda-repo-${APT_KEY}_${CUDA}.1-575.57.08-1_amd64.deb
+    URL=https://developer.download.nvidia.com/compute/cuda/${CUDA}.1/local_installers
+    ;;
+  cu128)
+    CUDA=12.8
+    APT_KEY=${OS}-${CUDA/./-}-local
+    FILENAME=cuda-repo-${APT_KEY}_${CUDA}.0-570.86.10-1_amd64.deb
+    URL=https://developer.download.nvidia.com/compute/cuda/${CUDA}.0/local_installers
+    ;;
+  cu126)
+    CUDA=12.6
+    APT_KEY=${OS}-${CUDA/./-}-local
+    FILENAME=cuda-repo-${APT_KEY}_${CUDA}.0-560.28.03-1_amd64.deb
+    URL=https://developer.download.nvidia.com/compute/cuda/${CUDA}.0/local_installers
+    ;;
   cu124)
     CUDA=12.4
     APT_KEY=${OS}-${CUDA/./-}-local

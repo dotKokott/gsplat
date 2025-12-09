@@ -18,6 +18,7 @@ case ${1} in
   cu128)
     export CUDA_HOME=/usr/local/cuda-12.8
     export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH=${CUDA_HOME}/extras/CUPTI/lib64:$LD_LIBRARY_PATH    
     export PATH=${CUDA_HOME}/bin:${PATH}
     export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
     ;;

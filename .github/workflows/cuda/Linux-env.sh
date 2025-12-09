@@ -3,6 +3,27 @@
 # Took from https://github.com/pyg-team/pyg-lib/
 
 case ${1} in
+  cu130)
+    export CUDA_HOME=/usr/local/cuda-13.0
+    export PATH=${CUDA_HOME}/bin:${PATH}
+    export TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+    ;;
+  cu129)
+    export CUDA_HOME=/usr/local/cuda-12.9
+    export PATH=${CUDA_HOME}/bin:${PATH}
+    export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+    ;;
+  cu128)
+    export CUDA_HOME=/usr/local/cuda-12.8
+    export PATH=${CUDA_HOME}/bin:${PATH}
+    export TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;9.0;10.0;12.0+PTX"
+    ;;
+  cu126)
+    export FORCE_CUDA=1
+    export CUDA_HOME=/usr/local/cuda-12.6
+    export PATH=${CUDA_HOME}/bin:${PATH}
+    export TORCH_CUDA_ARCH_LIST="6.0;7.0;7.5;8.0;8.6;9.0+PTX"
+    ;;
   cu124)
     export CUDA_HOME=/usr/local/cuda-12.4
     export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}

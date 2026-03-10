@@ -30,7 +30,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         python-version: ['3.11']
-        torch-version: ['2.7.1']
+        torch-version: ['2.7.1', '2.8.0', '2.9.0', '2.10.0']
         cuda-version: ['cu128']
         exclude:
           - python-version: 3.12

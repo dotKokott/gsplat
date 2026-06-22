@@ -1,34 +1,19 @@
-name: Build Wheels
+name: Build Wheel
 
-on: [workflow_call, workflow_dispatch]
+on:
+  push:
+    tags: ['wheel-*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
 jobs:
-  build_sdist:
-    name: Build source distribution and no binary wheel
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Strip unsupported tags in README
-        run: |
-          sed -i '/<!-- pypi-strip -->/,/<!-- \/pypi-strip -->/d' README.md
-      - name: Build sdist
-        run: BUILD_NO_CUDA=1 pipx run build --sdist
-      - name: Build wheel with no binaries
-        run: BUILD_NO_CUDA=1 python setup.py bdist_wheel --dist-dir=dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pypi_packages
-          path: dist/*.tar.gz
- 
-  build_wheels:
-    runs-on: ${{ matrix.os }}
-    environment: production
-
+  build_wheel:
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
         python-version: ['3.13']
         torch-version: ['2.8.0']
         cuda-version: ['cu128']
@@ -38,14 +23,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-  
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Free up disk space
-        if: ${{ runner.os == 'Linux' }}
         run: |
           echo "Disk space before cleanup:"
           df -h
@@ -55,9 +39,8 @@ jobs:
         shell: bash
 
       - name: Install CUDA ${{ matrix.cuda-version }}
-        if: ${{ matrix.cuda-version != 'cpu' }}
         run: |
-          bash .github/workflows/cuda/${{ runner.os }}.sh ${{ matrix.cuda-version }}
+          bash .github/workflows/cuda/Linux.sh ${{ matrix.cuda-version }}
         shell: bash
 
       - name: Install PyTorch ${{ matrix.torch-version }}+${{ matrix.cuda-version }}
@@ -65,19 +48,9 @@ jobs:
           pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/${{ matrix.cuda-version }}
           python -c "import torch; print('PyTorch:', torch.__version__)"
           python -c "import torch; print('CUDA:', torch.version.cuda)"
-          python -c "import torch; print('CUDA Available:', torch.cuda.is_available())"
-        shell: bash
-
-      - name: Patch PyTorch static constexpr on Windows
-        if: ${{ runner.os == 'Windows' }}
-        run: |
-          Torch_DIR=`python -c 'import os; import torch; print(os.path.dirname(torch.__file__))'`
-          sed -i '31,38c\
-          TORCH_API void lazy_init_num_threads();' ${Torch_DIR}/include/ATen/Parallel.h
         shell: bash
 
       - name: Set version
-        if: ${{ runner.os != 'macOS' }}
         run: |
           VERSION=`sed -n 's/^__version__ = "\(.*\)"/\1/p' gsplat/version.py`
           TORCH_VERSION=`echo "pt${{ matrix.torch-version }}" | sed "s/..$//" | sed "s/\.//g"`
@@ -86,22 +59,16 @@ jobs:
           sed -i "s/$VERSION/$VERSION+$TORCH_VERSION$CUDA_VERSION/" gsplat/version.py
         shell: bash
 
-      - name: Upgrade pip
+      - name: Upgrade build deps
         run: |
           pip install --upgrade setuptools
-          pip install ninja
-        shell: bash
-
-      - name: Install main package for CPU
-        if: ${{ matrix.cuda-version == 'cpu' }}
-        run: |
-          BUILD_NO_CUDA=1 pip install .
+          pip install ninja wheel
         shell: bash
 
       - name: Build wheel
         run: |
-          pip install wheel
-          source .github/workflows/cuda/${{ runner.os }}-env.sh ${{ matrix.cuda-version }}
+          source .github/workflows/cuda/Linux-env.sh ${{ matrix.cuda-version }}
+          export TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;10.0;12.0+PTX"
           MAX_JOBS=2 python setup.py bdist_wheel --dist-dir=dist
         shell: bash
 
@@ -116,6 +83,15 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          # Include unique matrix values to avoid name collisions.
-          name: compiled_wheels_python${{ matrix.python-version }}-${{ matrix.os }}-${{ matrix.torch-version }}-${{ matrix.cuda-version }}
+          name: compiled_wheel_python${{ matrix.python-version }}-${{ matrix.torch-version }}-${{ matrix.cuda-version }}
           path: dist/*.whl
+
+      - name: Publish to GitHub Release
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.whl \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "gsplat ${{ matrix.cuda-version }} wheel for Python ${{ matrix.python-version }}, torch ${{ matrix.torch-version }}. Arch: 8.0;8.6;8.9;9.0;10.0;12.0+PTX."
+        shell: bash
